@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Password Generator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #2a2a2c;
+    --bg-line: #343437;
+    --card: #3a3a3d;
+    --field: #232325;
+    --text: #ececec;
+    --muted: #9a9a9f;
+    --orange: #ff7a1a;
+    --orange-hover: #ff9142;
+    --orange-press: #e66a0e;
+    --green: #5fd38d;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    color: var(--text);
+    font-family: "Bricolage Grotesque", system-ui, sans-serif;
+    background-color: var(--bg);
+    background-image:
+      linear-gradient(var(--bg-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--bg-line) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+  .card {
+    width: 100%;
+    max-width: 440px;
+    padding: 36px 32px 32px;
+    background: var(--card);
+    border-radius: 14px;
+    border-top: 5px solid var(--orange);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, .35);
+  }
+  h1 { margin: 0 0 6px; font-size: 2rem; font-weight: 800; letter-spacing: -.02em; }
+  .sub { margin: 0 0 28px; color: var(--muted); font-size: 1rem; }
+  #password {
+    width: 100%;
+    padding: 16px;
+    color: var(--text);
+    background: var(--field);
+    border: 2px solid #4a4a4e;
+    border-radius: 8px;
+    font: 500 1.1rem "JetBrains Mono", ui-monospace, Consolas, monospace;
+    text-align: center;
+    letter-spacing: .04em;
+    transition: border-color .2s;
+  }
+  #password::placeholder { color: #6d6d72; letter-spacing: 0; font-size: .95rem; }
+  #password:focus { outline: none; border-color: var(--orange); }
+  #generate {
+    display: block;
+    width: 100%;
+    margin-top: 16px;
+    padding: 16px;
+    color: #1d1d1f;
+    background: var(--orange);
+    border: 0;
+    border-radius: 8px;
+    font: 800 1.1rem "Bricolage Grotesque", system-ui, sans-serif;
+    cursor: pointer;
+    box-shadow: 0 4px 0 var(--orange-press);
+    transition: transform .12s, box-shadow .12s, background .12s;
+  }
+  #generate:hover { background: var(--orange-hover); transform: translateY(-2px); box-shadow: 0 6px 0 var(--orange-press); }
+  #generate:active { background: var(--orange-press); transform: translateY(3px); box-shadow: 0 1px 0 var(--orange-press); }
+  #generate:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+  #message {
+    min-height: 1.5em;
+    margin: 16px 0 0;
+    color: var(--green);
+    font-weight: 600;
+    text-align: center;
+    opacity: 0;
+    transform: translateY(-6px);
+    transition: opacity .25s, transform .25s;
+  }
+  #message.show { opacity: 1; transform: none; }
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+  }
+</style>
+</head>
+<body>
+  <main class="card">
+    <h1>Password generator</h1>
+    <p class="sub">One click makes a strong password and copies it.</p>
+
+    <input id="password" type="text" readonly placeholder="Your password appears here" aria-label="Generated password">
+    <button id="generate" type="button">Generate Password</button>
+    <p id="message" role="status" aria-live="polite"></p>
+  </main>
+
+<script>
+  const CHARS =
+    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()-_=+";
+  const LENGTH = 16;
+
+  function generatePassword(length = LENGTH) {
+    const limit = Math.floor(0x100000000 / CHARS.length) * CHARS.length;
+    const buf = new Uint32Array(1);
+    let out = "";
+    while (out.length < length) {
+      crypto.getRandomValues(buf);
+      if (buf[0] < limit) out += CHARS[buf[0] % CHARS.length];
+    }
+    return out;
+  }
+  
+  async function copyText(text) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      const field = document.getElementById("password");
+      field.select();
+      return document.execCommand("copy");
+    }
+  }
+
+  const field = document.getElementById("password");
+  const message = document.getElementById("message");
+
+  document.getElementById("generate").addEventListener("click", async () => {
+    const password = generatePassword();
+    field.value = password;
+
+    const copied = await copyText(password);
+    message.textContent = copied
+      ? "Your password has been generated"
+      : "Your password has been generated. Copy it from the field.";
+
+    message.classList.remove("show");
+    void message.offsetWidth; // restart the fade-in on every click
+    message.classList.add("show");
+  });
+</script>
+</body>
+</html>
